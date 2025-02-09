@@ -112,9 +112,9 @@
                 </article>
         
                 <article class="text-box">
-                    <h2>Free</h2>
+                    <h2>Chart</h2>
                     <p>
-                        This app is free!!! And you are the only one holding your data!
+                        <canvas id="myChart"></canvas>
                     </p>
                 </article>
 
@@ -139,5 +139,46 @@
         </div>
     </footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.min.js" integrity="sha512-quHCp3WbBNkwLfYUMd+KwBAgpVukJu5MncuQaWXgCrfgcxCJAq/fo+oqrRKOj+UKEmyMCG3tb8RB63W+EmrOBg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha512-CQBWl4fJHWbryGE+Pc7UAxWMUMNMWzWxF4SQo9CgkJIN1kx6djDQZjh3Y8SZ1d+6I+1zze6Z7kHXO7q3UyZAWw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        var dataSource = {
+            datasets: [{
+                data: [10, 10, 10],
+                backgroundColor: [
+                    '#ffcd56',
+                    '#ff6384',
+                    '#36a2eb',
+                    '#fd6b19',
+                ]
+            }],
+
+            labels: [
+                'Rent',
+                'Groceries',
+                'Food'
+            ]
+        };
+        function createChart() {
+            var ctx = document.getElementById("myChart").getContext("2d");
+            var myPieChart = new Chart(ctx, {
+                type: 'pie',
+                data: dataSource
+            });
+        }
+
+        function getBudget(){
+            axios.get("/budget").then(function(res){
+                console.log(res,"api response");
+                for(var i=0;i<res.data.myBudget.length;i++){
+                    dataSource.datasets[0].data[i] = res.data.myBudget[i].budget;
+                    dataSource.labels[i]=res.data.myBudget[i].title;
+                }
+                console.log(dataSource,"dataSource");
+                createChart();
+            })
+        }
+        getBudget();
+    </script>
 </body>
 </html>
