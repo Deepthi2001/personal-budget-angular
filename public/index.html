@@ -111,13 +111,19 @@
                     </p>
                 </article>
         
-                <article class="text-box">
-                    <h2>Chart</h2>
+                <article class="text-box" style="display: flex;">
+                    <div>
+                    <h2> Budget Chart</h2>
                     <p>
-                        <canvas id="myChart"></canvas>
-                    </p>
-                </article>
+                        <canvas id="mySimpleChart"></canvas>
+                    </p></div>
 
+                    <div>
+                        <h2>D3 Budget Chart</h2>
+                    <div id="myd3Chart"></div>
+                    </div>
+                </article>
+                
             </section>
 
         </div>
@@ -141,31 +147,103 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.min.js" integrity="sha512-quHCp3WbBNkwLfYUMd+KwBAgpVukJu5MncuQaWXgCrfgcxCJAq/fo+oqrRKOj+UKEmyMCG3tb8RB63W+EmrOBg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha512-CQBWl4fJHWbryGE+Pc7UAxWMUMNMWzWxF4SQo9CgkJIN1kx6djDQZjh3Y8SZ1d+6I+1zze6Z7kHXO7q3UyZAWw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="https://d3js.org/d3.v4.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
     <script>
         var dataSource = {
             datasets: [{
-                data: [10, 10, 10],
-                // backgroundColor: [
-                //     '#ffcd56',
-                //     '#ff6384',
-                //     '#36a2eb',
-                //     '#fd6b19',
-                // ]
+                data: [],
             }],
 
             labels: [
                 'Rent',
                 'Groceries',
                 'Food'
-            ]
+            ],
+            myBudget:[]
         };
         function createChart() {
-            var ctx = document.getElementById("myChart").getContext("2d");
+            var ctx = document.getElementById("mySimpleChart").getContext("2d");
             var myPieChart = new Chart(ctx, {
                 type: 'pie',
                 data: dataSource
             });
         }
+
+    function createD3jsChart() {
+        var width = 400,
+            height = 400,
+            margin = 40,
+            radius = Math.min(width, height) / 2 - margin;
+
+        var svg = d3.select("#myd3Chart")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .append("g")
+            .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+
+        var data = dataSource.myBudget;
+
+        var color = d3.scaleOrdinal().range(d3.schemeDark2);
+
+        var pie = d3.pie()
+            .sort(null)
+            .value(d => d.value.budget);
+
+        var pie_data = pie(d3.entries(data));
+
+        var arc = d3.arc()
+            .innerRadius(radius * 0.45)
+            .outerRadius(radius * 0.8);
+
+        var outerArc = d3.arc()
+            .innerRadius(radius * 0.9)
+            .outerRadius(radius * 0.9);
+
+        // Draw Pie Slices
+        svg.selectAll("allSlices")
+            .data(pie_data)
+            .enter()
+            .append("path")
+            .attr("d", arc)
+            .attr("fill", d => color(d.data.value.title))
+            .attr("stroke", "white")
+            .style("stroke-width", "2px")
+            .style("opacity", 0.7);
+
+        // Draw Polylines
+        svg.selectAll("allPolylines")
+            .data(pie_data)
+            .enter()
+            .append("polyline")
+            .attr("stroke", "black")
+            .style("fill", "none")
+            .attr("stroke-width", 1)
+            .attr("points", function (d) {
+                var posA = arc.centroid(d);
+                var posB = outerArc.centroid(d);
+                var posC = outerArc.centroid(d);
+                var midangle = d.startAngle + (d.endAngle - d.startAngle) / 2;
+                posC[0] = radius * 0.95 * (midangle < Math.PI ? 1 : -1);
+                return [posA, posB, posC];
+            });
+
+        // Draw Labels
+        svg.selectAll("allLabels")
+            .data(pie_data)
+            .enter()
+            .append("text")
+            .text(d => d.data.value.title)
+            .attr("transform", function (d) {
+                var pos = outerArc.centroid(d);
+                var midangle = d.startAngle + (d.endAngle - d.startAngle) / 2;
+                pos[0] = radius * 0.99 * (midangle < Math.PI ? 1 : -1);
+                return "translate(" + pos + ")";
+            })
+            .style("text-anchor", d => (d.startAngle + (d.endAngle - d.startAngle) / 2 < Math.PI ? "start" : "end"));
+    }
 
         function getBudget(){
             axios.get("/budget").then(function(res){
@@ -173,9 +251,15 @@
                 for(var i=0;i<res.data.myBudget.length;i++){
                     dataSource.datasets[0].data[i] = res.data.myBudget[i].budget;
                     dataSource.labels[i]=res.data.myBudget[i].title;
+                    dataSource.myBudget.push({
+                        "title": res.data.myBudget[i].title,
+                        "budget": res.data.myBudget[i].budget
+                    })
                 }
                 console.log(dataSource,"dataSource");
                 createChart();
+                
+                createD3jsChart();
             })
         }
         getBudget();

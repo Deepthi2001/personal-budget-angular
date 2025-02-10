@@ -7,9 +7,9 @@ body {
     font-family: Tahoma, Arial;
 }
 
-#myChart{
-    width: 300px !important;
-    height: 300px !important;
+#mySimpleChart{
+    width: 400px !important;
+    height: 400px !important;
 }
 .menu {
     width: 100%;
