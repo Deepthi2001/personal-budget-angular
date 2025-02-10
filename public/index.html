@@ -160,8 +160,7 @@
                 'Rent',
                 'Groceries',
                 'Food'
-            ],
-            myBudget:[]
+            ]
         };
         function createChart() {
             var ctx = document.getElementById("mySimpleChart").getContext("2d");
@@ -171,7 +170,7 @@
             });
         }
 
-    function createD3jsChart() {
+    function createD3jsChart(d3Data) {
         var width = 400,
             height = 400,
             margin = 40,
@@ -184,15 +183,13 @@
             .append("g")
             .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
 
-        var data = dataSource.myBudget;
-
         var color = d3.scaleOrdinal().range(d3.schemeDark2);
 
         var pie = d3.pie()
             .sort(null)
             .value(d => d.value.budget);
 
-        var pie_data = pie(d3.entries(data));
+        var pie_data = pie(d3.entries(d3Data));
 
         var arc = d3.arc()
             .innerRadius(radius * 0.45)
@@ -251,15 +248,11 @@
                 for(var i=0;i<res.data.myBudget.length;i++){
                     dataSource.datasets[0].data[i] = res.data.myBudget[i].budget;
                     dataSource.labels[i]=res.data.myBudget[i].title;
-                    dataSource.myBudget.push({
-                        "title": res.data.myBudget[i].title,
-                        "budget": res.data.myBudget[i].budget
-                    })
                 }
                 console.log(dataSource,"dataSource");
                 createChart();
-                
-                createD3jsChart();
+                const d3Data = res.data.myBudget;
+                createD3jsChart(d3Data);
             })
         }
         getBudget();
