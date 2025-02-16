@@ -1,17 +1,18 @@
-import { Component, Inject, OnInit, PLATFORM_ID} from '@angular/core';
+import { AfterViewInit, Component, Inject, OnInit, PLATFORM_ID} from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ArticleBlockComponent } from '../article-block/article-block.component';
 import { isPlatformBrowser } from '@angular/common';
 import { Chart } from 'chart.js/auto';
+import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component';
 
 @Component({ 
   selector: 'homepage',
-  imports: [ArticleBlockComponent],
+  imports: [ArticleBlockComponent, BreadcrumbsComponent],
   templateUrl: './homepage.component.html',
   styleUrls: ['./homepage.component.scss']
 })
 
-export class HomepageComponent implements OnInit {
+export class HomepageComponent implements AfterViewInit {
 
   public dataSource = {
     datasets: [{
@@ -28,7 +29,8 @@ export class HomepageComponent implements OnInit {
   constructor(private http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {}
-  ngOnInit(): void {
+
+  ngAfterViewInit(): void {
     this.http.get('http://localhost:3000/budget')
     .subscribe((res: any)=>{
         this.dataSource.datasets[0].data = res.myBudget.map((item: any)=> item.budget);
@@ -36,7 +38,7 @@ export class HomepageComponent implements OnInit {
 
 
       this.createChart();
-      // const d3Data = res.data.myBudget;
+      // const d3Data = res.myBudget;
       // createD3jsChart(d3Data);
     })
   }
