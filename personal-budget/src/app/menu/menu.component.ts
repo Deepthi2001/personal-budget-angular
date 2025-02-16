@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 
 @Component({
@@ -8,6 +8,8 @@ import { RouterModule } from '@angular/router';
   styleUrls: ['./menu.component.scss'],
   standalone: true
 })
-export class MenuComponent {
-
+export class MenuComponent implements OnInit{
+  constructor(){}
+    ngOnInit(): void{
+  }
 }

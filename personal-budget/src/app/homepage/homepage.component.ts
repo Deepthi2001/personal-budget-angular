@@ -1,16 +1,15 @@
-import { Component, OnInit } from '@angular/core';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { Component, Inject, OnInit, PLATFORM_ID} from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { ArticleBlockComponent } from '../article-block/article-block.component';
-import { Chart } from 'chart.js';
+import { isPlatformBrowser } from '@angular/common';
+import { Chart } from 'chart.js/auto';
 
 @Component({ 
   selector: 'homepage',
-  imports: [ArticleBlockComponent,HttpClientModule],
+  imports: [ArticleBlockComponent],
   templateUrl: './homepage.component.html',
-  styleUrls: ['./homepage.component.scss'],
-  standalone: true
+  styleUrls: ['./homepage.component.scss']
 })
-
 
 export class HomepageComponent implements OnInit {
 
@@ -25,33 +24,40 @@ export class HomepageComponent implements OnInit {
         'Food'
     ]
 };
-  constructor(private http: HttpClient){ }
 
+  constructor(private http: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {}
   ngOnInit(): void {
     this.http.get('http://localhost:3000/budget')
     .subscribe((res: any)=>{
-      debugger;
-      console.log(res, "result");
-      for(var i=0;i<res.myBudget.length;i++){
+        this.dataSource.datasets[0].data = res.myBudget.map((item: any)=> item.budget);
+        this.dataSource.labels=res.myBudget.map((item:any)=>item.title);
 
-        this.dataSource.datasets[0].data[i] = res.myBudget[i].budget;
-        this.dataSource.labels[i]=res.myBudget[i].title;
-        // console.log(this.dataSource,"this.datasource")
-        // this.createChart();
-      }
-      // console.log(dataSource,"dataSource");
-      // this.createChart();
+
+      this.createChart();
       // const d3Data = res.data.myBudget;
       // createD3jsChart(d3Data);
     })
   }
 
-  // createChart() {
-  //   var ctx = document.getElementById("mySimpleChart").getContext("2d");
-  //   var myPieChart = new Chart(ctx, {
-  //       type: 'pie',
-  //       data: this.dataSource
-  //   });
-  // }
+
+  createChart() {
+    if (isPlatformBrowser(this.platformId)) {
+      const canvas = document.getElementById("mySimpleChart") as HTMLCanvasElement;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+          console.error("Unable to get 2D context!");
+          return;
+      }
+
+      const myPieChart = new Chart(ctx, {
+          type: 'pie',
+          data: this.dataSource
+      });
+    }
+  }
+
 
 }
