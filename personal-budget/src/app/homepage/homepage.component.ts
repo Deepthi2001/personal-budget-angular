@@ -32,50 +32,55 @@ export class HomepageComponent implements AfterViewInit {
   ]
   };
 
-  private svg: any;
-  private margin = 40;
   private width = 400;
   private height = 400;
+  private margin = 40;
   private radius = Math.min(this.width, this.height) / 2 - this.margin;
+
 
   ngAfterViewInit(): void {
     this.dataService.getBudgetData().subscribe(res => {
-    if(res){
-        this.dataSource.datasets[0].data = res.myBudget.map((item: any)=> item.budget);
-        this.dataSource.labels=res.myBudget.map((item:any)=>item.title);
+      if (res) {
+        this.d3Data = res.myBudget; // ✅ Store data for D3.js
+        this.dataSource.datasets[0].data = res.myBudget.map((item:any) => item.budget);
+        this.dataSource.labels = res.myBudget.map((item:any) => item.title);
 
-          this.createChart();
-            setTimeout(() => {
-              this.createD3jsChart();
-            }, 100);
-          }
-          
-        });
+        this.createChart(); // ✅ Chart.js rendering
+
+        setTimeout(() => {
+          this.createD3jsChart(); // ✅ D3.js rendering without ViewChild
+        }, 200);
+      }
+    });
   }
 
   createChart() {
-
     if (isPlatformBrowser(this.platformId)) {
-    const canvas = document.getElementById("mySimpleChart") as HTMLCanvasElement;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      console.error("Unable to get 2D context!");
-      return;
+      const canvas = document.getElementById("mySimpleChart") as HTMLCanvasElement;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        console.error("Unable to get 2D context!");
+        return;
+      }
+      new Chart(ctx, {
+        type: 'pie',
+        data: this.dataSource
+      });
     }
-
-    const myPieChart = new Chart(ctx, {
-      type: 'pie',
-      data: this.dataSource
-   });
-  }
   }
 
   createD3jsChart() {
     if (!isPlatformBrowser(this.platformId)) return;
 
-    d3.select("#myd3Chart").select("svg").remove();
+    const chartElement = document.getElementById("myd3Chart");
+    if (!chartElement) {
+      console.error("D3 Chart container not found!");
+      return;
+    }
 
-    const svg = d3.select("#myd3Chart")
+    d3.select(chartElement).select("svg").remove(); // ✅ Clear existing chart
+
+    const svg = d3.select(chartElement)
       .append('svg')
       .attr('width', this.width)
       .attr('height', this.height)
@@ -85,32 +90,30 @@ export class HomepageComponent implements AfterViewInit {
     const color = d3.scaleOrdinal(d3.schemeCategory10);
 
     const pie = d3.pie<{ budget: number; title: string }>().value(d => d.budget);
+    const pieData = pie(this.d3Data);
 
-    const arc = d3.arc<d3.PieArcDatum<{ budget: number; title: string }>>()
+    const arc = d3.arc<d3.PieArcDatum<{ budget: number }>>()
       .innerRadius(0)
       .outerRadius(this.radius);
 
-    // Draw Pie Slices
     svg.selectAll('path')
-      .data(pie(this.d3Data))
+      .data(pieData)
       .enter()
       .append('path')
       .attr('d', arc as any)
-      .attr('fill', (d => color(d.data.title) as string))
+      .attr('fill', (d, i) => color(i.toString()))
       .attr('stroke', 'white')
       .style('stroke-width', '2px')
       .style('opacity', 0.7);
 
-    // Draw Labels
-   svg.selectAll('text')
-      .data(pie(this.d3Data))
+    svg.selectAll('text')
+      .data(pieData)
       .enter()
       .append('text')
       .attr('transform', d => `translate(${arc.centroid(d)})`)
       .attr('dy', '0.35em')
       .style('text-anchor', 'middle')
       .style('font-size', '12px')
-      .text((d => d.data.title));
+      .text(d => d.data.title);
   }
-
 }
