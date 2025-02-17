@@ -1,10 +1,11 @@
-import { AfterViewInit, Component, ElementRef, Inject, OnDestroy, PLATFORM_ID, ViewChild 
+import { AfterViewInit, Component, ElementRef, inject, OnDestroy, PLATFORM_ID, ViewChild 
 } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ArticleBlockComponent } from '../article-block/article-block.component';
 import { isPlatformBrowser } from '@angular/common';
 import * as d3 from 'd3';
 import { Chart } from 'chart.js/auto';
+import { DataService } from '../services/data.service';
 import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component';
 
 @Component({ 
@@ -13,10 +14,11 @@ import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component';
   templateUrl: './homepage.component.html',
   styleUrls: ['./homepage.component.scss']
 })
-export class HomepageComponent implements AfterViewInit, OnDestroy {
-
-  @ViewChild('d3ChartContainer') chartContainer?: ElementRef;  // ✅ For D3.js
-  @ViewChild('chartCanvas') chartCanvas?: ElementRef;  // ✅ For Chart.js
+export class HomepageComponent implements AfterViewInit {
+  private http = inject(HttpClient);
+  private platformId = inject(PLATFORM_ID);
+  private d3Data: { budget: number; title: string }[] = [];
+  constructor(private dataService: DataService) {}
 
   public dataSource = {
     datasets: [{
@@ -35,33 +37,23 @@ export class HomepageComponent implements AfterViewInit, OnDestroy {
   private width = 400;
   private height = 400;
   private radius = Math.min(this.width, this.height) / 2 - this.margin;
-  private chartInstance: Chart | null = null;  // ✅ Store Chart.js instance
-
-  constructor(private http: HttpClient, @Inject(PLATFORM_ID) private platformId: Object) {}
 
   ngAfterViewInit(): void {
-      this.http.get('http://localhost:3000/budget')
-    .subscribe((res: any)=>{
+    this.dataService.getBudgetData().subscribe(res => {
+    if(res){
         this.dataSource.datasets[0].data = res.myBudget.map((item: any)=> item.budget);
         this.dataSource.labels=res.myBudget.map((item:any)=>item.title);
 
-
-          this.createChart(); 
-          this.createD3jsChart();
-          // setTimeout(() => {  
-          //   this.createD3jsChart();
-          // });
+          this.createChart();
+            setTimeout(() => {
+              this.createD3jsChart();
+            }, 100);
+          }
+          
         });
   }
 
-  /**
-   * ✅ Creates a Chart.js Pie Chart
-   */
   createChart() {
-    // if (!this.chartCanvas || !this.chartCanvas.nativeElement) {
-    //   console.error("Chart.js canvas not found!");
-    //   return;
-    // }
 
     if (isPlatformBrowser(this.platformId)) {
     const canvas = document.getElementById("mySimpleChart") as HTMLCanvasElement;
@@ -78,19 +70,12 @@ export class HomepageComponent implements AfterViewInit, OnDestroy {
   }
   }
 
-  /**
-   * ✅ Creates a D3.js Pie Chart
-   */
-  private createD3jsChart(): void {
-    if (!this.chartContainer || !this.chartContainer.nativeElement) {
-      console.error("D3 Chart container is not available!");
-      return;
-    }
+  createD3jsChart() {
+    if (!isPlatformBrowser(this.platformId)) return;
 
-    const element = this.chartContainer.nativeElement;
-    d3.select(element).selectAll('*').remove(); // ✅ Clear previous chart
+    d3.select("#myd3Chart").select("svg").remove();
 
-    this.svg = d3.select(element)
+    const svg = d3.select("#myd3Chart")
       .append('svg')
       .attr('width', this.width)
       .attr('height', this.height)
@@ -99,51 +84,33 @@ export class HomepageComponent implements AfterViewInit, OnDestroy {
 
     const color = d3.scaleOrdinal(d3.schemeCategory10);
 
-    const pie = d3.pie<number>()
-      .sort(null)
-      .value((d: number) => d);
+    const pie = d3.pie<{ budget: number; title: string }>().value(d => d.budget);
 
-    const pieData = pie(this.dataSource.datasets[0].data as number[]);
-
-    const arc = d3.arc<d3.PieArcDatum<number>>()
+    const arc = d3.arc<d3.PieArcDatum<{ budget: number; title: string }>>()
       .innerRadius(0)
       .outerRadius(this.radius);
 
     // Draw Pie Slices
-    this.svg.selectAll('path')
-      .data(pieData)
+    svg.selectAll('path')
+      .data(pie(this.d3Data))
       .enter()
       .append('path')
-      .attr('d', arc)
-      .attr('fill', (d: d3.PieArcDatum<number>, i: number) => color(i.toString()))
+      .attr('d', arc as any)
+      .attr('fill', (d => color(d.data.title) as string))
       .attr('stroke', 'white')
       .style('stroke-width', '2px')
       .style('opacity', 0.7);
 
     // Draw Labels
-    this.svg.selectAll('text')
-      .data(pieData)
+   svg.selectAll('text')
+      .data(pie(this.d3Data))
       .enter()
       .append('text')
-      .attr('transform', (d: d3.PieArcDatum<number>) => `translate(${arc.centroid(d)})`)
+      .attr('transform', d => `translate(${arc.centroid(d)})`)
       .attr('dy', '0.35em')
       .style('text-anchor', 'middle')
       .style('font-size', '12px')
-      .text((d: d3.PieArcDatum<number>, i: number) => this.dataSource.labels[i]);
+      .text((d => d.data.title));
   }
 
-  /**
-   * ✅ Cleanup Chart.js and D3.js when the component is destroyed
-   */
-  ngOnDestroy(): void {
-    // Cleanup Chart.js
-    if (this.chartInstance) {
-      this.chartInstance.destroy();
-    }
-
-    // Cleanup D3.js
-    if (this.chartContainer?.nativeElement) {
-      d3.select(this.chartContainer.nativeElement).selectAll('*').remove();
-    }
-  }
 }
