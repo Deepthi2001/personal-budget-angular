@@ -41,14 +41,14 @@ export class HomepageComponent implements AfterViewInit {
   ngAfterViewInit(): void {
     this.dataService.getBudgetData().subscribe(res => {
       if (res) {
-        this.d3Data = res.myBudget; // ✅ Store data for D3.js
+        this.d3Data = res.myBudget;
         this.dataSource.datasets[0].data = res.myBudget.map((item:any) => item.budget);
         this.dataSource.labels = res.myBudget.map((item:any) => item.title);
 
-        this.createChart(); // ✅ Chart.js rendering
+        this.createChart();
 
         setTimeout(() => {
-          this.createD3jsChart(); // ✅ D3.js rendering without ViewChild
+          this.createD3jsChart(); 
         }, 200);
       }
     });
@@ -78,7 +78,7 @@ export class HomepageComponent implements AfterViewInit {
       return;
     }
 
-    d3.select(chartElement).select("svg").remove(); // ✅ Clear existing chart
+    d3.select(chartElement).select("svg").remove();
 
     const svg = d3.select(chartElement)
       .append('svg')
